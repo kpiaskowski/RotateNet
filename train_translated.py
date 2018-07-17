@@ -1,8 +1,9 @@
-from architectures.AE_only_conv import AE_only_conv
+import cv2
+
+from architectures.AE_coord_conv import AE_coord_conv
 from dataproviders.chairs_provider import ChairProvider
 import tensorflow as tf
 import datetime
-import time
 
 from utils.functions import normalize_inputs
 import os
@@ -15,14 +16,15 @@ iters = 50000
 ckpt = 20
 save_ckpt = 2000
 activation = tf.nn.relu
-note = 'masks added'
+note = 'rolled matrices with coord conv'
+max_roll = 35
 
 # dataprovider
 dataprovider = ChairProvider('../RotateNet_data/chairs', batch_size=batch_size, img_size=img_size, n_imgs=n_imgs)
 handle, t_iter, v_iter, images, angles, classes = dataprovider.dataset()
 
-# namingyou
-model = AE_only_conv()
+# naming
+model = AE_coord_conv()
 model_name = 'chairs|--|{}|--|batch_{}|--|eta_{}|--|imgsize_{}|--|activ_{}|--|nimgs_{}|--|date_{}|--|{}'.format(model.name,
                                                                                                                 batch_size,
                                                                                                                 learning_rate,
@@ -38,8 +40,19 @@ is_training = tf.placeholder(tf.bool)
 # data
 normalized_imgs, normalized_angles = normalize_inputs(images, angles)
 base_imgs, target_imgs = model.split_imgs(normalized_imgs)
-masks = 1 - tf.to_float(tf.equal(base_imgs, 1))[..., :1] # preserve dims
-concat_base_imgs = tf.concat([base_imgs, masks], axis=-1)
+
+# rolling
+x_roll = tf.random_uniform([1], -max_roll, max_roll, tf.int32)[0]
+y_roll = tf.random_uniform([1], -max_roll, max_roll, tf.int32)[0]
+rolled_b = tf.manip.roll(base_imgs, y_roll, axis=1)
+rolled_b = tf.manip.roll(rolled_b, x_roll, axis=2)
+rolled_t = tf.manip.roll(target_imgs, y_roll, axis=1)
+rolled_t = tf.manip.roll(rolled_t, x_roll, axis=2)
+
+# masking
+masks = 1 - tf.to_float(tf.equal(rolled_b, 1))[..., :1]  # preserve dims
+concat_base_imgs = tf.concat([rolled_b, masks], axis=-1)
+
 target_angles = normalized_angles[:, -1, :]
 
 # model
@@ -50,10 +63,10 @@ merged_lv = model.merge_lv_angle(lv, reshaped_angles, activation)
 gen_imgs = model.decoder(merged_lv, activation, is_training)
 
 # losses
-mse_loss = tf.losses.mean_squared_error(labels=target_imgs, predictions=gen_imgs)
+mse_loss = tf.losses.mean_squared_error(labels=rolled_t, predictions=gen_imgs)
 
 # summaries
-concat_img = tf.concat([base_imgs, gen_imgs, target_imgs], 2)
+concat_img = tf.concat([rolled_b, gen_imgs, rolled_t], 2)
 loss_summary = tf.summary.scalar('loss', mse_loss)
 img_summary = tf.summary.image('images', concat_img)
 loss_merged = tf.summary.merge([loss_summary])
@@ -68,6 +81,7 @@ with tf.control_dependencies(update_ops):
     train_op = optimizer.apply_gradients(capped_gvs)
 
 saver = tf.train.Saver(max_to_keep=1)
+
 with tf.Session() as sess:
     train_writer = tf.summary.FileWriter('summaries/' + model_name + '_train')
     val_writer = tf.summary.FileWriter('summaries/' + model_name + '_val')
@@ -82,6 +96,12 @@ with tf.Session() as sess:
         train_writer.flush()
         t_s += 1
 
+        if t_s % save_ckpt == 0:
+            if not os.path.isdir('saved_models/' + model_name):
+                os.mkdir('saved_models/' + model_name)
+            saver.save(sess, 'saved_models/' + model_name + '/' + 'model.ckpt', t_s)
+            print('Model saved at {} step'.format(t_s))
+
         if t_s % ckpt == 0:
             img_summ = sess.run(img_merged, feed_dict={handle: t_handle, is_training: False})
             train_writer.add_summary(img_summ, t_s)
@@ -94,9 +114,3 @@ with tf.Session() as sess:
             val_writer.add_summary(loss_summ, v_s)
             val_writer.flush()
             v_s += 1
-
-        if t_s % save_ckpt == 0:
-            if not os.path.isdir('saved_models/' + model_name):
-                os.mkdir('saved_models/' + model_name)
-            saver.save(sess, 'saved_models/' + model_name + '/' + 'model.ckpt', t_s)
-            print('Model saved at {} step'.format(t_s))
