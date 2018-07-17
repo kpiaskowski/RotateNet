@@ -6,7 +6,7 @@ import time
 
 from utils.functions import normalize_inputs
 
-batch_size = 50
+batch_size = 25
 learning_rate = 0.0005
 n_imgs = 5
 img_size = 128
@@ -14,13 +14,13 @@ iters = 50000
 ckpt = 20
 save_ckpt = 2000
 activation = tf.nn.relu
-note = 'mse_loss'
+note = 'masks added'
 
 # dataprovider
 dataprovider = ChairProvider('../RotateNet_data/chairs', batch_size=batch_size, img_size=img_size, n_imgs=n_imgs)
 handle, t_iter, v_iter, images, angles, classes = dataprovider.dataset()
 
-# naming
+# namingyou
 model = AE_only_conv()
 model_name = 'chairs|--|{}|--|batch_{}|--|eta_{}|--|imgsize_{}|--|activ_{}|--|nimgs_{}|--|date_{}|--|{}'.format(model.name,
                                                                                                                 batch_size,
@@ -37,10 +37,12 @@ is_training = tf.placeholder(tf.bool)
 # data
 normalized_imgs, normalized_angles = normalize_inputs(images, angles)
 base_imgs, target_imgs = model.split_imgs(normalized_imgs)
+masks = 1 - tf.to_float(tf.equal(base_imgs, 1))[..., :1] # preserve dims
+concat_base_imgs = tf.concat([base_imgs, masks], axis=-1)
 target_angles = normalized_angles[:, -1, :]
 
 # model
-reshaped_imgs = tf.reshape(base_imgs, [-1, img_size, img_size, 3])  # tf hack
+reshaped_imgs = tf.reshape(concat_base_imgs, [-1, img_size, img_size, 4])  # tf hack
 reshaped_angles = tf.reshape(target_angles, [-1, 3])  # tf hack
 lv = model.encoder(reshaped_imgs, activation, is_training)
 merged_lv = model.merge_lv_angle(lv, reshaped_angles, activation)
