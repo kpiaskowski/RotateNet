@@ -16,7 +16,7 @@ iters = 50000
 ckpt = 20
 save_ckpt = 2000
 activation = tf.nn.relu
-note = 'rolled matrices with coord conv'
+note = 'rolled matrices with coord conv +A+E'
 max_roll = 35
 
 # dataprovider

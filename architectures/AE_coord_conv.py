@@ -97,20 +97,20 @@ class AE_coord_conv:
             d_conv = tf.reshape(merged_lv, [-1, 8, 8, 256])
             d_conv = tf.image.resize_images(d_conv, (16, 16))
 
-            d_conv = tf.layers.conv2d(d_conv, 256, 3, padding='same', activation=None)
+            d_conv = self.coord_conv(d_conv, 256, 3, padding='same', activation=None)
             d_conv = tf.layers.batch_normalization(d_conv, training=is_training, fused=True)
             d_conv = activation(d_conv)
             d_conv = tf.image.resize_images(d_conv, (32, 32))
 
-            d_conv = tf.layers.conv2d(d_conv, 92, 3, padding='same', activation=None)
+            d_conv = self.coord_conv(d_conv, 92, 3, padding='same', activation=None)
             d_conv = tf.layers.batch_normalization(d_conv, training=is_training, fused=True)
             d_conv = activation(d_conv)
             d_conv = tf.image.resize_images(d_conv, (64, 64))
 
-            d_conv = tf.layers.conv2d(d_conv, 48, 3, padding='same', activation=None)
+            d_conv = self.coord_conv(d_conv, 48, 3, padding='same', activation=None)
             d_conv = tf.layers.batch_normalization(d_conv, training=is_training, fused=True)
             d_conv = activation(d_conv)
             d_conv = tf.image.resize_images(d_conv, (128, 128))
 
-            d_conv = tf.layers.conv2d(d_conv, 3, 3, padding='same', activation=None)
+            d_conv = self.coord_conv(d_conv, 3, 3, padding='same', activation=None)
             return d_conv
