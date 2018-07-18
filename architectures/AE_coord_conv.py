@@ -1,5 +1,7 @@
 import tensorflow as tf
-from tensorflow.contrib.layers import l2_regularizer, xavier_initializer
+from tensorflow.contrib.layers import l2_regularizer, xavier_initializer, xavier_initializer_conv2d
+import numpy as np
+from stn import spatial_transformer_network as transformer
 
 
 class AE_coord_conv:
@@ -46,13 +48,24 @@ class AE_coord_conv:
         conv = tf.layers.conv2d(ret, filters, kernel, padding=padding, activation=activation)
         return conv
 
-    def encoder(self, imgs, activation, is_training):
-        with tf.variable_scope('encoder', reuse=tf.AUTO_REUSE, initializer=xavier_initializer(), regularizer=l2_regularizer(0.01)):
-            e_conv = self.coord_conv(imgs, 48, 3, padding='same', activation=None)
+    def encoder(self, imgs, activation, is_training, batch_size, img_shape, channels):
+        with tf.variable_scope('encoder', reuse=tf.AUTO_REUSE, initializer=xavier_initializer_conv2d(), regularizer=l2_regularizer(0.01)):
+            # stn >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            n_fc = 6
+            initial = np.array([[1., 0, 0], [0, 1., 0]])
+            initial = initial.astype('float32').flatten()
+
+            W_fc1 = tf.Variable(tf.zeros(shape=[img_shape * img_shape * channels, n_fc]), name='W_fc1', validate_shape=False)
+            b_fc1 = tf.Variable(initial_value=initial, name='b_fc1')
+            h_fc1 = tf.matmul(tf.zeros([batch_size, img_shape * img_shape * channels]), W_fc1) + b_fc1
+
+            h_trans = transformer(imgs, h_fc1)
+            # stn <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+            e_conv = self.coord_conv(h_trans, 48, 3, padding='same', activation=None)
             e_conv = tf.layers.batch_normalization(e_conv, training=is_training, fused=True)
             e_conv = activation(e_conv)
             e_conv = tf.layers.max_pooling2d(e_conv, 2, 2)
-
 
             e_conv = self.coord_conv(e_conv, 92, 3, padding='same', activation=None)
             e_conv = tf.layers.batch_normalization(e_conv, training=is_training, fused=True)
@@ -92,12 +105,22 @@ class AE_coord_conv:
 
         return concat
 
-    def decoder(self, merged_lv, activation, is_training):
-        with tf.variable_scope('decoder', reuse=tf.AUTO_REUSE, initializer=xavier_initializer(), regularizer=l2_regularizer(0.01)):
+    def decoder(self, merged_lv, activation, is_training, batch_size):
+        with tf.variable_scope('decoder', reuse=tf.AUTO_REUSE, initializer=xavier_initializer_conv2d(), regularizer=l2_regularizer(0.01)):
             d_conv = tf.reshape(merged_lv, [-1, 8, 8, 256])
             d_conv = tf.image.resize_images(d_conv, (16, 16))
 
-            d_conv = self.coord_conv(d_conv, 256, 3, padding='same', activation=None)
+            # stn >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            n_fc = 6
+            initial = np.array([[1., 0, 0], [0, 1., 0]])
+            initial = initial.astype('float32').flatten()
+            Wd_fc1 = tf.Variable(tf.zeros(shape=[16 * 16 * 256, n_fc]), name='Wdst1_fc1', validate_shape=False)
+            bd_fc1 = tf.Variable(initial_value=initial, name='bdst1_fc1')
+            hd_fc1 = tf.matmul(tf.zeros([batch_size, 16 * 16 * 256]), Wd_fc1) + bd_fc1
+            hd_trans = transformer(d_conv, hd_fc1)
+            # stn <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+            d_conv = self.coord_conv(hd_trans, 256, 3, padding='same', activation=None)
             d_conv = tf.layers.batch_normalization(d_conv, training=is_training, fused=True)
             d_conv = activation(d_conv)
             d_conv = tf.image.resize_images(d_conv, (32, 32))

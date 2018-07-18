@@ -16,7 +16,7 @@ iters = 50000
 ckpt = 20
 save_ckpt = 2000
 activation = tf.nn.relu
-note = 'rolled matrices with coord conv +A+E'
+note = 'coord conv E+D, stn E + D, rolled inp, rolled out'
 max_roll = 35
 
 # dataprovider
@@ -58,9 +58,11 @@ target_angles = normalized_angles[:, -1, :]
 # model
 reshaped_imgs = tf.reshape(concat_base_imgs, [-1, img_size, img_size, 4])  # tf hack
 reshaped_angles = tf.reshape(target_angles, [-1, 3])  # tf hack
-lv = model.encoder(reshaped_imgs, activation, is_training)
-merged_lv = model.merge_lv_angle(lv, reshaped_angles, activation)
-gen_imgs = model.decoder(merged_lv, activation, is_training)
+
+lv = model.encoder(reshaped_imgs, activation, is_training, batch_size, img_size, 4)
+reshaped_lv = tf.reshape(lv, [batch_size, 1024])
+merged_lv = model.merge_lv_angle(reshaped_lv, reshaped_angles, activation)
+gen_imgs = model.decoder(merged_lv, activation, is_training, batch_size)
 
 # losses
 mse_loss = tf.losses.mean_squared_error(labels=rolled_t, predictions=gen_imgs)
@@ -81,7 +83,6 @@ with tf.control_dependencies(update_ops):
     train_op = optimizer.apply_gradients(capped_gvs)
 
 saver = tf.train.Saver(max_to_keep=1)
-
 with tf.Session() as sess:
     train_writer = tf.summary.FileWriter('summaries/' + model_name + '_train')
     val_writer = tf.summary.FileWriter('summaries/' + model_name + '_val')
