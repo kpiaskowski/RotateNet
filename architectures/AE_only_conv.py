@@ -14,17 +14,17 @@ class AE_only_conv:
 
     def encoder(self, imgs, activation, is_training):
         with tf.variable_scope('encoder', reuse=tf.AUTO_REUSE, initializer=xavier_initializer(), regularizer=l2_regularizer(0.01)):
-            e_conv = tf.layers.conv2d(imgs, 48, 3, padding='same', activation=None)
+            e_conv = tf.layers.conv2d(imgs, 48, 3, padding='same', activation=None, name='econv1')
             e_conv = tf.layers.batch_normalization(e_conv, training=is_training, fused=True)
             e_conv = activation(e_conv)
             e_conv = tf.layers.max_pooling2d(e_conv, 2, 2)
 
-            e_conv = tf.layers.conv2d(e_conv, 92, 3, padding='same', activation=None)
+            e_conv = tf.layers.conv2d(e_conv, 92, 3, padding='same', activation=None, name='econv2')
             e_conv = tf.layers.batch_normalization(e_conv, training=is_training, fused=True)
             e_conv = activation(e_conv)
             e_conv = tf.layers.max_pooling2d(e_conv, 2, 2)
 
-            e_conv = tf.layers.conv2d(e_conv, 256, 3, padding='same', activation=None)
+            e_conv = tf.layers.conv2d(e_conv, 256, 3, padding='same', activation=None, name='econv3')
             e_conv = tf.layers.batch_normalization(e_conv, training=is_training, fused=True)
             e_conv = activation(e_conv)
             e_conv = tf.layers.max_pooling2d(e_conv, 2, 2)
