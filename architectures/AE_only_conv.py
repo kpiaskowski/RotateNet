@@ -6,12 +6,6 @@ class AE_only_conv:
     def __init__(self):
         self.name = AE_only_conv.__name__
 
-    def split_imgs(self, imgs_placeholder):
-        """Splits images into base one and target one"""
-        base_imgs = imgs_placeholder[:, 0, :, :, :]
-        target_imgs = imgs_placeholder[:, -1, :, :, :]
-        return base_imgs, target_imgs
-
     def encoder(self, imgs, activation, is_training):
         with tf.variable_scope('encoder', reuse=tf.AUTO_REUSE, initializer=xavier_initializer(), regularizer=l2_regularizer(0.01)):
             e_conv = tf.layers.conv2d(imgs, 48, 3, padding='same', activation=None, name='econv1')

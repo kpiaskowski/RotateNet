@@ -47,7 +47,6 @@ class ChairProvider:
         dataset = dataset.filter(lambda x, y, z: tf.equal(tf.shape(y)[0], self.n_imgs))
         dataset = dataset.prefetch(self.batch_size)
         dataset = dataset.apply(tf.contrib.data.batch_and_drop_remainder(self.batch_size))
-        # dataset = dataset.batch(self.batch_size)
         dataset = dataset.repeat()
         return dataset
 

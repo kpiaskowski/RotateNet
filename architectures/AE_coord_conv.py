@@ -8,12 +8,6 @@ class AE_coord_conv:
     def __init__(self):
         self.name = AE_coord_conv.__name__
 
-    def split_imgs(self, imgs_placeholder):
-        """Splits images into base one and target one"""
-        base_imgs = imgs_placeholder[:, 0, :, :, :]
-        target_imgs = imgs_placeholder[:, -1, :, :, :]
-        return base_imgs, target_imgs
-
     def accumulation_matrix(self, batch_size, dim_size, type):
         """
         Creates matrix filed with increasing numbers, normalized
