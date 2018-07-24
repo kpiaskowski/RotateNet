@@ -9,7 +9,7 @@ import time
 from utils.functions import normalize_inputs, cropping_pipeline
 import os
 
-batch_size = 45
+batch_size = 50
 learning_rate = 0.0005
 n_imgs = 5
 img_size = 128
@@ -33,8 +33,8 @@ is_training = tf.placeholder(tf.bool)
 # data
 normalized_imgs, normalized_angles = normalize_inputs(images, angles)
 base_imgs, target_imgs = model.split_imgs(normalized_imgs)
-base_masks = 1 - tf.to_float(tf.equal(base_imgs, 1))[..., :1] # preserve dims
-target_masks = 1 - tf.to_float(tf.equal(target_imgs, 1))[..., :1] # preserve dims
+base_masks = 1 - tf.to_float(tf.equal(base_imgs, 1))[..., :1]  # preserve dims
+target_masks = 1 - tf.to_float(tf.equal(target_imgs, 1))[..., :1]  # preserve dims
 # concat_base_imgs = tf.concat([base_imgs, masks], axis=-1)
 target_angles = normalized_angles[:, -1, :]
 
@@ -92,3 +92,19 @@ with tf.Session() as sess:
             train_writer.add_summary(img_summ, t_s)
             train_writer.flush()
             t_s += 1
+
+            base, bmasks, target, tmasks, angle = sess.run([base_imgs, base_masks, target_imgs, target_masks, target_angles], feed_dict={handle: v_handle})
+            resized_base = cropping_pipeline(base, bmasks, img_size)
+            resized_target = cropping_pipeline(target, tmasks, img_size)
+            img_summ, loss_summ, cost = sess.run([img_merged, loss_merged, mse_loss], feed_dict={base_pl: resized_base, target_pl: resized_target, angle_pl: angle, handle: v_handle, is_training: False})
+            print('VAL iteration {} of {}, cost: {:.6f}'.format(i, iters, cost))
+            val_writer.add_summary(img_summ, v_s)
+            val_writer.add_summary(loss_summ, v_s)
+            val_writer.flush()
+            v_s += 1
+
+        if t_s % save_ckpt == 0:
+            if not os.path.isdir('saved_models/' + model_name):
+                os.mkdir('saved_models/' + model_name)
+            saver.save(sess, 'saved_models/' + model_name + '/' + 'model.ckpt', t_s)
+            print('Model saved at {} step'.format(t_s))
