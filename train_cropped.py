@@ -17,7 +17,7 @@ iters = 50000
 ckpt = 20
 save_ckpt = 2000
 activation = tf.nn.relu
-note = 'ssim loss'
+note = 'cropped with placeholders'
 
 # dataprovider
 dataprovider = ChairProvider('../RotateNet_data/chairs', batch_size=batch_size, img_size=img_size, n_imgs=n_imgs)
@@ -49,11 +49,10 @@ gen_imgs = model.decoder(merged_lv, activation, is_training)
 
 # losses
 mse_loss = tf.losses.mean_squared_error(labels=target_pl, predictions=gen_imgs)
-ssim_loss = 1/tf.reduce_sum(tf.image.ssim(target_pl, gen_imgs, 1.0))
 
 # summaries
 concat_img = tf.concat([base_pl, gen_imgs, target_pl], 2)
-loss_summary = tf.summary.scalar('loss', ssim_loss)
+loss_summary = tf.summary.scalar('loss', mse_loss)
 img_summary = tf.summary.image('images', concat_img)
 loss_merged = tf.summary.merge([loss_summary])
 img_merged = tf.summary.merge([img_summary])
@@ -62,7 +61,7 @@ img_merged = tf.summary.merge([img_summary])
 update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
 with tf.control_dependencies(update_ops):
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-    gvs = optimizer.compute_gradients(ssim_loss)
+    gvs = optimizer.compute_gradients(mse_loss)
     capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gvs]
     train_op = optimizer.apply_gradients(capped_gvs)
 
@@ -78,13 +77,13 @@ with tf.Session() as sess:
         base, bmasks, target, tmasks, angle = sess.run([base_imgs, base_masks, target_imgs, target_masks, target_angles], feed_dict={handle: t_handle})
         resized_base = cropping_pipeline(base, bmasks, img_size)
         resized_target = cropping_pipeline(target, tmasks, img_size)
-        _, cost, summ = sess.run([train_op, ssim_loss, loss_merged], feed_dict={base_pl: resized_base, target_pl: resized_target, angle_pl: angle, handle: t_handle, is_training: True})
+        _, cost, summ = sess.run([train_op, mse_loss, loss_merged], feed_dict={base_pl: resized_base, target_pl: resized_target, angle_pl: angle, handle: t_handle, is_training: True})
         print('TRAIN iteration {} of {}, cost: {:.6f}'.format(i, iters, cost))
 
         train_writer.add_summary(summ, t_s)
         train_writer.flush()
         t_s += 1
-
+        
         if t_s % save_ckpt == 0:
             if not os.path.isdir('saved_models/' + model_name):
                 os.mkdir('saved_models/' + model_name)
@@ -103,7 +102,7 @@ with tf.Session() as sess:
             base, bmasks, target, tmasks, angle = sess.run([base_imgs, base_masks, target_imgs, target_masks, target_angles], feed_dict={handle: v_handle})
             resized_base = cropping_pipeline(base, bmasks, img_size)
             resized_target = cropping_pipeline(target, tmasks, img_size)
-            img_summ, loss_summ, cost = sess.run([img_merged, loss_merged, ssim_loss], feed_dict={base_pl: resized_base, target_pl: resized_target, angle_pl: angle, handle: v_handle, is_training: False})
+            img_summ, loss_summ, cost = sess.run([img_merged, loss_merged, mse_loss], feed_dict={base_pl: resized_base, target_pl: resized_target, angle_pl: angle, handle: v_handle, is_training: False})
             print('VAL iteration {} of {}, cost: {:.6f}'.format(i, iters, cost))
             val_writer.add_summary(img_summ, v_s)
             val_writer.add_summary(loss_summ, v_s)
