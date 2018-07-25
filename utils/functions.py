@@ -20,11 +20,15 @@ def split_imgs(imgs_placeholder):
     return base_imgs, target_imgs
 
 
-def cosinize_angles(angles):
+def cosinize_angles_tf(angles):
     rad_ang = deg2rad(angles)
     cos_ang = tf.cos(rad_ang)
     return cos_ang
 
+def cosinize_angles_np(angles):
+    rad_ang = deg2rad(angles)
+    cos_ang = np.cos(rad_ang)
+    return cos_ang
 
 def normalize_images(imgs):
     """Normalizes images and converts angles to rads and cosines"""

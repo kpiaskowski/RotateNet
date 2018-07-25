@@ -3,7 +3,7 @@ from dataproviders.chairs_provider import ChairProvider
 import tensorflow as tf
 import datetime
 
-from utils.functions import cropping_pipeline, normalize_images, cosinize_angles, split_imgs
+from utils.functions import cropping_pipeline, normalize_images, cosinize_angles_tf, split_imgs
 import os
 
 batch_size = 50
@@ -14,7 +14,7 @@ iters = 500000
 ckpt = 20
 save_ckpt = 10000
 activation = tf.nn.relu
-note = 'cropped with masks'
+note = 'test np'
 
 # dataprovider
 dataprovider = ChairProvider('../RotateNet_data/chairs', batch_size=batch_size, img_size=img_size, n_imgs=n_imgs)
@@ -29,7 +29,7 @@ is_training = tf.placeholder(tf.bool)
 
 # data
 normalized_imgs = normalize_images(images)
-cosinized_angles = cosinize_angles(angles)
+cosinized_angles = cosinize_angles_tf(angles)
 relative_angles = cosinized_angles[:, -1, :] - cosinized_angles[:, 0, :]
 base_imgs, target_imgs = split_imgs(normalized_imgs)
 base_masks = 1 - tf.to_float(tf.equal(base_imgs, 1))[..., :1]  # preserve dims
@@ -78,7 +78,7 @@ with tf.Session() as sess:
         resized_base, resized_bmasks = cropping_pipeline(base, bmasks, img_size)
         resized_target, resized_tmasks = cropping_pipeline(target, tmasks, img_size)
         _, cost, summ = sess.run([train_op, mse_loss, loss_merged], feed_dict={base_pl: resized_base, target_pl: resized_target, angle_pl: angle,
-                                                                               base_mask_pl: resized_bmasks, handle: t_handle, is_training: True})
+                                                                               base_mask_pl: resized_bmasks, is_training: True})
         print('TRAIN iteration {} of {}, cost: {:.6f}'.format(i, iters, cost))
         train_writer.add_summary(summ, t_s)
         train_writer.flush()
@@ -95,7 +95,7 @@ with tf.Session() as sess:
             resized_base, resized_bmasks = cropping_pipeline(base, bmasks, img_size)
             resized_target, resized_tmasks = cropping_pipeline(target, tmasks, img_size)
             img_summ = sess.run(img_merged, feed_dict={base_pl: resized_base, target_pl: resized_target, angle_pl: angle,
-                                                       base_mask_pl: resized_bmasks, handle: t_handle, is_training: False})
+                                                       base_mask_pl: resized_bmasks, is_training: False})
             train_writer.add_summary(img_summ, t_s)
             train_writer.flush()
             t_s += 1
@@ -104,7 +104,7 @@ with tf.Session() as sess:
             resized_base, resized_bmasks = cropping_pipeline(base, bmasks, img_size)
             resized_target, resized_tmasks = cropping_pipeline(target, tmasks, img_size)
             img_summ, loss_summ, cost = sess.run([img_merged, loss_merged, mse_loss], feed_dict={base_pl: resized_base, target_pl: resized_target, angle_pl: angle,
-                                                                                                 base_mask_pl: resized_bmasks, handle: v_handle, is_training: False})
+                                                                                                 base_mask_pl: resized_bmasks, is_training: False})
             print('VAL iteration {} of {}, cost: {:.6f}'.format(i, iters, cost))
             val_writer.add_summary(img_summ, v_s)
             val_writer.add_summary(loss_summ, v_s)
