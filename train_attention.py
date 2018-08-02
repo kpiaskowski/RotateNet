@@ -6,7 +6,7 @@ import datetime
 from utils.functions import cropping_pipeline, normalize_images, cosinize_angles_tf, split_imgs, deg2rad
 import os
 
-batch_size = 50
+batch_size = 40
 learning_rate = 0.0005
 n_imgs = 2
 img_size = 128
@@ -14,7 +14,7 @@ iters = 500000
 ckpt = 20
 save_ckpt = 10000
 activation = tf.nn.relu
-note = 'test'
+note = 'attention with cropped, not cosined, masked'
 
 # dataprovider
 dataprovider = ChairProvider('../RotateNet_data/chairs', batch_size=batch_size, img_size=img_size, n_imgs=n_imgs)
@@ -43,9 +43,9 @@ angle_pl = tf.placeholder(tf.float32, [None, 3])
 
 # model
 concat_base = tf.concat([base_pl, base_mask_pl], axis=-1)
-lv = model.encoder(concat_base, activation, is_training)
+lv, ag_1, ag_2, ag_3 = model.encoder(concat_base, activation, is_training, batch_size)
 merged_lv = model.merge_lv_angle(lv, angle_pl, activation)
-gen_imgs = model.decoder(merged_lv, activation, is_training)
+gen_imgs = model.decoder(merged_lv, activation, is_training, ag_1, ag_2, ag_3)
 
 # losses
 mse_loss = tf.losses.mean_squared_error(labels=target_pl, predictions=gen_imgs)

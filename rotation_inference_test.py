@@ -15,7 +15,7 @@ ckpt = 20
 save_ckpt = 10000
 activation = tf.nn.relu
 note = 'cropped with masks'
-model_path = 'saved_models/cropped with placeholders---date_2018-07-24 10:33:14.561975/model.ckpt-52000'
+model_path = 'saved_models/cropped with masks, absolute angles---date_2018-07-26 12:59:03.307532/model.ckpt-480000'
 
 # dataprovider
 dataprovider = ChairProvider('../RotateNet_data/chairs', batch_size=batch_size, img_size=img_size, n_imgs=n_imgs)
@@ -37,8 +37,8 @@ base_mask_pl = tf.placeholder(tf.float32, [None, img_size, img_size, 1])
 angle_pl = tf.placeholder(tf.float32, [None, 3])
 
 # model
-# concat_base = tf.concat([base_pl, base_mask_pl], axis=-1)
-lv = model.encoder(base_pl, activation, is_training)
+concat_base = tf.concat([base_pl, base_mask_pl], axis=-1)
+lv = model.encoder(concat_base, activation, is_training)
 merged_lv = model.merge_lv_angle(lv, angle_pl, activation)
 gen_imgs = model.decoder(merged_lv, activation, is_training)
 
@@ -52,8 +52,9 @@ with tf.Session() as sess:
 
     resized_base, resized_bmasks = cropping_pipeline(base, bmasks, img_size)
 
+    raw_imgs = []
     for a1 in range(10, 21, 10):
-        for a2 in range(0, 361, 1):
+        for a2 in range(0, 361, 5):
             angles_delta = [a1, a2, 96]
             cos_angles = cosinize_angles_np(np.expand_dims(np.array(angles_delta, np.float32), 0))
 
@@ -62,7 +63,15 @@ with tf.Session() as sess:
                                                     angle_pl: cos_angles,
                                                     is_training: False})
             concat_in_out = np.concatenate([resized_base[0], outputs[0]], 1)
-            print(angles_delta)
-            cv2.imshow('gen', concat_in_out)
-            cv2.waitKey(100)
+            raw_imgs.append(concat_in_out)
+            # print(angles_delta)
+            # cv2.imshow('gen', concat_in_out)
+            # cv2.waitKey(1000)
+    ls = [raw_imgs[i] for i in range(0, len(raw_imgs), 2)]
+    rs = [raw_imgs[i] for i in range(1, len(raw_imgs), 2)]
+    togetger = ls + rs
+
+    for img in togetger:
+        cv2.imshow('gen', img)
+        cv2.waitKey(200)
 
