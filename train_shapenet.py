@@ -80,7 +80,7 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
 
     t_s, v_s = 0, 0
-    for i in range(10):
+    for i in range(iters):
         base, bmasks, target, tmasks, angle = sess.run([base_imgs, base_masks, target_imgs, target_masks, relative_angles], feed_dict={handle: t_handle})
         resized_base, resized_bmasks = cropping_pipeline(base, bmasks, img_size, mean_img_val=0.55)
         resized_target, resized_tmasks = cropping_pipeline(target, tmasks, img_size, mean_img_val=0.55)
