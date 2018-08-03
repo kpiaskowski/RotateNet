@@ -15,7 +15,7 @@ class ShapenetProvider:
         self.classes = sorted(os.listdir(class_path))
         self.data_dirs = sorted([os.path.join(data_path, name) for name in os.listdir(data_path) if '.mat' not in name])
 
-        self.train_paths, self.val_paths = self.split_sets(0.9, self.classes, self.data_dirs, seed)
+        self.train_paths, self.val_paths = self.split_sets(split_ratio, self.classes, self.data_dirs, seed)
 
     def create_dataset(self, paths):
         dataset = tf.data.Dataset.from_tensor_slices((tf.constant(paths)))
@@ -54,8 +54,9 @@ class ShapenetProvider:
         mask_string = tf.read_file(tf.regex_replace(filename, "rgb", "mask"))
         mask_decoded = tf.image.decode_png(mask_string)
         mask_resized = tf.image.resize_images(mask_decoded, [self.img_size, self.img_size])
+        mask_gray = tf.image.rgb_to_grayscale(mask_resized)
 
-        return image_resized, mask_resized, filename
+        return image_resized, mask_gray, filename
 
     def decode_name(self, img, mask, filename):
         decoded = filename.decode()

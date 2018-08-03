@@ -63,7 +63,7 @@ def crop_imgs(images, xmin, xmax, ymin, ymax):
     return cropped_imgs
 
 
-def resize_and_pad(images, img_size):
+def resize_and_pad(images, img_size, mean_img_val):
     resized_imgs = []
     for img in images:
         y, x, c = img.shape[0], img.shape[1], img.shape[2]
@@ -74,7 +74,7 @@ def resize_and_pad(images, img_size):
                 padded = np.pad(resized, ((0, 0), ((img_size - new_x) // 2, (img_size - new_x) // 2)), mode='constant', constant_values=0)
                 padded = np.expand_dims(padded, -1)
             else:
-                padded = np.pad(resized, ((0, 0), ((img_size - new_x) // 2, (img_size - new_x) // 2), (0, 0)), mode='constant', constant_values=1)
+                padded = np.pad(resized, ((0, 0), ((img_size - new_x) // 2, (img_size - new_x) // 2), (0, 0)), mode='constant', constant_values=mean_img_val)
             resized_imgs.append(padded)
         else:
             new_y = int(img_size / x * y / 2) * 2  # rounding to nearest)
@@ -83,18 +83,17 @@ def resize_and_pad(images, img_size):
                 padded = np.pad(resized, (((img_size - new_y) // 2, (img_size - new_y) // 2), (0, 0),), mode='constant', constant_values=0)
                 padded = np.expand_dims(padded, -1)
             else:
-                padded = np.pad(resized, (((img_size - new_y) // 2, (img_size - new_y) // 2), (0, 0), (0, 0)), mode='constant', constant_values=1)
+                padded = np.pad(resized, (((img_size - new_y) // 2, (img_size - new_y) // 2), (0, 0), (0, 0)), mode='constant', constant_values=mean_img_val)
             resized_imgs.append(padded)
     return resized_imgs
 
 
-def cropping_pipeline(imgs, masks, img_size):
+def cropping_pipeline(imgs, masks, img_size, mean_img_val):
     xmin, xmax, ymin, ymax, *_ = find_bbox_coords(masks)
-
     cropped_imgs = crop_imgs(imgs, xmin, xmax, ymin, ymax)
-    resized_imgs = resize_and_pad(cropped_imgs, img_size)
+    resized_imgs = resize_and_pad(cropped_imgs, img_size, mean_img_val)
 
     cropped_masks = crop_imgs(masks, xmin, xmax, ymin, ymax)
-    resized_masks = resize_and_pad(cropped_masks, img_size)
+    resized_masks = resize_and_pad(cropped_masks, img_size, mean_img_val)
 
     return resized_imgs, resized_masks
