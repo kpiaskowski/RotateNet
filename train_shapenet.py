@@ -82,41 +82,44 @@ with tf.Session() as sess:
 
     t_s, v_s = 0, 0
     for i in range(iters):
-        base, bmasks, target, tmasks, angle = sess.run([base_imgs, base_masks, target_imgs, target_masks, relative_angles], feed_dict={handle: t_handle})
-        resized_base, resized_bmasks = cropping_pipeline(base, bmasks, img_size, mean_img_val)
-        resized_target, resized_tmasks = cropping_pipeline(target, tmasks, img_size, mean_img_val)
-        _, cost, summ = sess.run([train_op, mse_loss, loss_merged], feed_dict={base_pl: resized_base, target_pl: resized_target, angle_pl: angle,
-                                                                               base_mask_pl: resized_bmasks, is_training: True})
-
-
-        print('TRAIN iteration {} of {}, cost: {:.6f}'.format(i, iters, cost))
-        train_writer.add_summary(summ, t_s)
-        train_writer.flush()
-        t_s += 1
-
-        if t_s % save_ckpt == 0:
-            if not os.path.isdir('saved_models/' + model_name):
-                os.mkdir('saved_models/' + model_name)
-            saver.save(sess, 'saved_models/' + model_name + '/' + 'model.ckpt', t_s)
-            print('Model saved at {} step'.format(t_s))
-
-        if t_s % ckpt == 0:
+        try:
             base, bmasks, target, tmasks, angle = sess.run([base_imgs, base_masks, target_imgs, target_masks, relative_angles], feed_dict={handle: t_handle})
             resized_base, resized_bmasks = cropping_pipeline(base, bmasks, img_size, mean_img_val)
             resized_target, resized_tmasks = cropping_pipeline(target, tmasks, img_size, mean_img_val)
-            img_summ = sess.run(img_merged, feed_dict={base_pl: resized_base, target_pl: resized_target, angle_pl: angle,
-                                                       base_mask_pl: resized_bmasks, is_training: False})
-            train_writer.add_summary(img_summ, t_s)
+            _, cost, summ = sess.run([train_op, mse_loss, loss_merged], feed_dict={base_pl: resized_base, target_pl: resized_target, angle_pl: angle,
+                                                                                   base_mask_pl: resized_bmasks, is_training: True})
+
+
+            print('TRAIN iteration {} of {}, cost: {:.6f}'.format(i, iters, cost))
+            train_writer.add_summary(summ, t_s)
             train_writer.flush()
             t_s += 1
 
-            base, bmasks, target, tmasks, angle = sess.run([base_imgs, base_masks, target_imgs, target_masks, relative_angles], feed_dict={handle: v_handle})
-            resized_base, resized_bmasks = cropping_pipeline(base, bmasks, img_size, mean_img_val)
-            resized_target, resized_tmasks = cropping_pipeline(target, tmasks, img_size, mean_img_val)
-            img_summ, loss_summ, cost = sess.run([img_merged, loss_merged, mse_loss], feed_dict={base_pl: resized_base, target_pl: resized_target, angle_pl: angle,
-                                                                                                 base_mask_pl: resized_bmasks, is_training: False})
-            print('VAL iteration {} of {}, cost: {:.6f}'.format(i, iters, cost))
-            val_writer.add_summary(img_summ, v_s)
-            val_writer.add_summary(loss_summ, v_s)
-            val_writer.flush()
-            v_s += 1
+            if t_s % save_ckpt == 0:
+                if not os.path.isdir('saved_models/' + model_name):
+                    os.mkdir('saved_models/' + model_name)
+                saver.save(sess, 'saved_models/' + model_name + '/' + 'model.ckpt', t_s)
+                print('Model saved at {} step'.format(t_s))
+
+            if t_s % ckpt == 0:
+                base, bmasks, target, tmasks, angle = sess.run([base_imgs, base_masks, target_imgs, target_masks, relative_angles], feed_dict={handle: t_handle})
+                resized_base, resized_bmasks = cropping_pipeline(base, bmasks, img_size, mean_img_val)
+                resized_target, resized_tmasks = cropping_pipeline(target, tmasks, img_size, mean_img_val)
+                img_summ = sess.run(img_merged, feed_dict={base_pl: resized_base, target_pl: resized_target, angle_pl: angle,
+                                                           base_mask_pl: resized_bmasks, is_training: False})
+                train_writer.add_summary(img_summ, t_s)
+                train_writer.flush()
+                t_s += 1
+
+                base, bmasks, target, tmasks, angle = sess.run([base_imgs, base_masks, target_imgs, target_masks, relative_angles], feed_dict={handle: v_handle})
+                resized_base, resized_bmasks = cropping_pipeline(base, bmasks, img_size, mean_img_val)
+                resized_target, resized_tmasks = cropping_pipeline(target, tmasks, img_size, mean_img_val)
+                img_summ, loss_summ, cost = sess.run([img_merged, loss_merged, mse_loss], feed_dict={base_pl: resized_base, target_pl: resized_target, angle_pl: angle,
+                                                                                                     base_mask_pl: resized_bmasks, is_training: False})
+                print('VAL iteration {} of {}, cost: {:.6f}'.format(i, iters, cost))
+                val_writer.add_summary(img_summ, v_s)
+                val_writer.add_summary(loss_summ, v_s)
+                val_writer.flush()
+                v_s += 1
+        except:
+            pass
