@@ -63,7 +63,7 @@ def crop_imgs(images, xmin, xmax, ymin, ymax):
     return cropped_imgs
 
 
-def resize_and_pad(images, img_size, mean_img_val):
+def resize_and_pad(images, img_size, mean_img_val, one_channel_padding_value = 0):
     resized_imgs = []
     for img in images:
         y, x, c = img.shape[0], img.shape[1], img.shape[2]
@@ -71,7 +71,7 @@ def resize_and_pad(images, img_size, mean_img_val):
             new_x = int(img_size / y * x / 2) * 2  # rounding to nearest
             resized = cv2.resize(img, (new_x, img_size))
             if c == 1:
-                padded = np.pad(resized, ((0, 0), ((img_size - new_x) // 2, (img_size - new_x) // 2)), mode='constant', constant_values=0)
+                padded = np.pad(resized, ((0, 0), ((img_size - new_x) // 2, (img_size - new_x) // 2)), mode='constant', constant_values=one_channel_padding_value)
                 padded = np.expand_dims(padded, -1)
             else:
                 padded = np.pad(resized, ((0, 0), ((img_size - new_x) // 2, (img_size - new_x) // 2), (0, 0)), mode='constant', constant_values=mean_img_val)
@@ -80,7 +80,7 @@ def resize_and_pad(images, img_size, mean_img_val):
             new_y = int(img_size / x * y / 2) * 2  # rounding to nearest)
             resized = cv2.resize(img, (img_size, new_y))
             if c == 1:
-                padded = np.pad(resized, (((img_size - new_y) // 2, (img_size - new_y) // 2), (0, 0),), mode='constant', constant_values=0)
+                padded = np.pad(resized, (((img_size - new_y) // 2, (img_size - new_y) // 2), (0, 0),), mode='constant', constant_values=one_channel_padding_value)
                 padded = np.expand_dims(padded, -1)
             else:
                 padded = np.pad(resized, (((img_size - new_y) // 2, (img_size - new_y) // 2), (0, 0), (0, 0)), mode='constant', constant_values=mean_img_val)

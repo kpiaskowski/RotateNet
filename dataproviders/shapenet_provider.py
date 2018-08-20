@@ -12,7 +12,8 @@ class ShapenetProvider:
         self.img_size = img_size
         self.num_parallel_calls = num_parallel_calls
 
-        self.classes = sorted(os.listdir(class_path))
+        # self.classes = sorted(os.listdir(class_path)) temporarily  only armchairs
+        self.classes = ['armchair']
         self.data_dirs = sorted([os.path.join(data_path, name) for name in os.listdir(data_path) if '.mat' not in name])
 
         self.train_paths, self.val_paths = self.split_sets(split_ratio, self.classes, self.data_dirs, seed)
@@ -23,10 +24,10 @@ class ShapenetProvider:
         dataset = dataset.flat_map(lambda dir: tf.data.Dataset.list_files(dir + '/*rgb.png').
                                    shuffle(30).
                                    map(self.load_images, self.num_parallel_calls).
-                                   map(lambda img, mask, filename: tuple(tf.py_func(self.decode_name, [img, mask, filename], [tf.float32, tf.float32, tf.float32, tf.int32], stateful=False)),
+                                   map(lambda img, mask, depth, filename: tuple(tf.py_func(self.decode_name, [img, mask, depth, filename], [tf.float32, tf.float32, tf.float32, tf.float32, tf.int32], stateful=False)),
                                        self.num_parallel_calls).
                                    batch(self.n_imgs))
-        dataset = dataset.filter(lambda x, y, z, v: tf.equal(tf.shape(y)[0], self.n_imgs))
+        dataset = dataset.filter(lambda x, y, z, v, w: tf.equal(tf.shape(y)[0], self.n_imgs))
         dataset = dataset.prefetch(self.batch_size)
         dataset = dataset.shuffle(150)
         dataset = dataset.apply(tf.contrib.data.batch_and_drop_remainder(self.batch_size))
@@ -39,12 +40,12 @@ class ShapenetProvider:
 
         h = tf.placeholder(tf.string, shape=[])
         iter = tf.data.Iterator.from_string_handle(h, t_d.output_types, t_d.output_shapes)
-        images, masks, angles, classes = iter.get_next()
+        images, masks, depths, angles, classes = iter.get_next()
 
         t_iter = t_d.make_one_shot_iterator()
         v_iter = v_d.make_one_shot_iterator()
 
-        return h, t_iter, v_iter, images, masks, angles, classes
+        return h, t_iter, v_iter, images, masks, depths, angles, classes
 
     def load_images(self, filename):
         image_string = tf.read_file(filename)
@@ -56,14 +57,21 @@ class ShapenetProvider:
         mask_resized = tf.image.resize_images(mask_decoded, [self.img_size, self.img_size])
         mask_gray = tf.image.rgb_to_grayscale(mask_resized)
 
-        return image_resized, mask_gray, filename
+        depth_string = tf.regex_replace(filename, "rgb", "depth")
+        depth_string = tf.regex_replace(depth_string, "shapenet", "shapenet_depth")
+        depth_string = tf.read_file(depth_string)
+        depth_decoded = tf.image.decode_png(depth_string)
+        depth_resized = tf.image.resize_images(depth_decoded, [self.img_size, self.img_size])
+        depth_gray = tf.image.rgb_to_grayscale(depth_resized)
 
-    def decode_name(self, img, mask, filename):
+        return image_resized, mask_gray, depth_gray, filename
+
+    def decode_name(self, img, mask, depth, filename):
         decoded = filename.decode()
-        split_str = '_'.join(decoded.split('/')[-2].split('_')[:-1])
+        split_str = ''.join(decoded.split('/')[-2].split('_')[:-1])
         classes = np.int32(self.classes.index(split_str))
         angles = np.float32(decoded.split('/')[-1].split('_')[:2])
-        return img, mask, angles, classes
+        return img, mask, depth, angles, classes
 
     def split_sets(self, ratio, classes, data_dirs, seed):
         rng = random.Random(seed)
