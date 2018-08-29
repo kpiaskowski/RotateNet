@@ -15,7 +15,7 @@ ckpt = 20
 save_ckpt = 10000
 activation = tf.nn.relu
 mean_img_val = 0.75
-note = 'reduced shapenet'
+note = 'reduced shapenet rel angles'
 
 # dataproviderp
 dataprovider = ShapenetProvider('../shapenet', '../shapenet_raw', batch_size=batch_size, img_size=img_size, n_imgs=n_imgs)
@@ -61,7 +61,7 @@ gen_imgs, gen_depths = model.decoder(merged_lv, activation, is_training, ag_1, a
 # losses
 mse_loss = tf.losses.mean_squared_error(labels=target_pl, predictions=gen_imgs)
 depth_loss = tf.losses.mean_squared_error(labels=target_depth_pl, predictions=gen_depths)
-total_loss = mse_loss + depth_loss
+total_loss = mse_loss + depth_loss + tf.losses.get_regularization_loss()
 
 # summaries
 concat_img = tf.concat([base_pl, gen_imgs, target_pl, tf.image.grayscale_to_rgb(gen_depths), tf.image.grayscale_to_rgb(target_depth_pl)], 2)
