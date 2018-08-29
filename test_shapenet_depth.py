@@ -1,5 +1,5 @@
 from architectures.AE_only_conv import AE_only_conv
-from dataproviders.shapenet_provider import ShapenetProvider
+from dataproviders.reduced_shapenet_provider import ShapenetProvider
 import tensorflow as tf
 import datetime
 
@@ -15,9 +15,9 @@ ckpt = 20
 save_ckpt = 10000
 activation = tf.nn.relu
 mean_img_val = 0.75
-note = 'depth armchairs test absolute angles'
+note = 'reduced shapenet'
 
-# dataprovider
+# dataproviderp
 dataprovider = ShapenetProvider('../shapenet', '../shapenet_raw', batch_size=batch_size, img_size=img_size, n_imgs=n_imgs)
 handle, t_iter, v_iter, images, masks, depths, angles, classes = dataprovider.dataset()
 
