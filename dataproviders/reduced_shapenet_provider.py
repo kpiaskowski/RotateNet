@@ -21,7 +21,7 @@ class ShapenetProvider:
     def filter_name(self, name):
         ang1, ang2, _ = name.decode().split('/')[-1].split('_')
         ang1, ang2 = int(ang1), int(ang2)
-        if (ang1 == 10 or ang1 == 20 or ang1 == 30) and ang2 % 12 == 0:
+        if (ang1 == 10 or ang1 == 20 or ang1 == 30) and ang2 % 6 == 0:
             return True
         else:
             return False
@@ -78,8 +78,9 @@ class ShapenetProvider:
 
     def decode_name(self, img, mask, depth, filename):
         decoded = filename.decode()
-        split_str = ''.join(decoded.split('/')[-2].split('_')[:-1])
-        classes = np.int32(self.classes.index(split_str))
+        cls_string = ''.join(decoded.split('/')[-2]).split('_')
+        cls_string = '_'.join(cls_string[:3]) if len(cls_string) == 3 else cls_string[0]
+        classes = np.int32(self.classes.index(cls_string))
         angles = np.float32(decoded.split('/')[-1].split('_')[:2])
         return img, mask, depth, angles, classes
 

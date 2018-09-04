@@ -13,24 +13,27 @@ class AE_only_conv:
             e_conv = activation(e_conv)
             e_conv = tf.layers.max_pooling2d(e_conv, 2, 2)
 
-            ag_1 = tf.get_variable('ag_1', shape=[batch_size, 64, 64, 48], dtype=tf.float32)
-            ag_1 = tf.nn.sigmoid(e_conv * ag_1)
+            shortcut1 = tf.get_variable('shortcut1', shape=[1, 64, 64, 48], dtype=tf.float32)
+            shortcut1 = tf.tile(shortcut1, [batch_size, 1, 1, 1])
+            shortcut1 = tf.nn.sigmoid(e_conv * shortcut1)
 
             e_conv = tf.layers.conv2d(e_conv, 92, 3, padding='same', activation=None, name='econv2')
             e_conv = tf.layers.batch_normalization(e_conv, training=is_training, fused=True)
             e_conv = activation(e_conv)
             e_conv = tf.layers.max_pooling2d(e_conv, 2, 2)
 
-            ag_2 = tf.get_variable('ag_2', shape=[batch_size, 32, 32, 92], dtype=tf.float32)
-            ag_2 = tf.nn.sigmoid(e_conv * ag_2)
+            shortcut2 = tf.get_variable('shortcut2', shape=[1, 32, 32, 92], dtype=tf.float32)
+            shortcut2 = tf.tile(shortcut2, [batch_size, 1, 1, 1])
+            shortcut2 = tf.nn.sigmoid(e_conv * shortcut2)
 
             e_conv = tf.layers.conv2d(e_conv, 256, 3, padding='same', activation=None, name='econv3')
             e_conv = tf.layers.batch_normalization(e_conv, training=is_training, fused=True)
             e_conv = activation(e_conv)
             e_conv = tf.layers.max_pooling2d(e_conv, 2, 2)
 
-            ag_3 = tf.get_variable('ag_3', shape=[batch_size, 16, 16, 256], dtype=tf.float32)
-            ag_3 = tf.nn.sigmoid(e_conv * ag_3)
+            shortcut3 = tf.get_variable('shortcut3', shape=[1, 16, 16, 256], dtype=tf.float32)
+            shortcut3 = tf.tile(shortcut3, [batch_size, 1, 1, 1])
+            shortcut3 = tf.nn.sigmoid(e_conv * shortcut3)
 
             e_conv = tf.layers.conv2d(e_conv, 256, 3, padding='same', activation=None)
             e_conv = tf.layers.batch_normalization(e_conv, training=is_training, fused=True)
@@ -48,7 +51,7 @@ class AE_only_conv:
             e_conv = tf.layers.max_pooling2d(e_conv, 2, 2)
 
             lv = tf.layers.flatten(e_conv)
-            return lv, ag_1, ag_2, ag_3
+            return lv, shortcut1, shortcut2, shortcut3
 
     def merge_lv_angle(self, lv, angles, activation):
         view = tf.layers.dense(angles, 512)

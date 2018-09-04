@@ -15,7 +15,7 @@ ckpt = 20
 save_ckpt = 10000
 activation = tf.nn.relu
 mean_img_val = 0.75
-note = 'reduced shapenet rel angles 6 angle'
+note = 'chair rel angles 6 step'
 
 # dataproviderp
 dataprovider = ShapenetProvider('../shapenet', '../shapenet_raw', batch_size=batch_size, img_size=img_size, n_imgs=n_imgs)
