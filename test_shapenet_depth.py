@@ -6,7 +6,7 @@ import datetime
 from utils.functions import cropping_pipeline, normalize_images, split_imgs, deg2rad, find_bbox_coords, crop_imgs, resize_and_pad
 import os
 
-batch_size = 30
+batch_size = 40
 learning_rate = 0.0005
 n_imgs = 2
 img_size = 128
@@ -15,7 +15,7 @@ ckpt = 20
 save_ckpt = 10000
 activation = tf.nn.relu
 mean_img_val = 0.75
-note = 'reduced shapenet rel angles 6 angle step'
+note = 'reduced shapenet rel angles 6 angle'
 
 # dataproviderp
 dataprovider = ShapenetProvider('../shapenet', '../shapenet_raw', batch_size=batch_size, img_size=img_size, n_imgs=n_imgs)

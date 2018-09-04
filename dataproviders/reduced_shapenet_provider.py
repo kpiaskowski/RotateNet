@@ -19,10 +19,9 @@ class ShapenetProvider:
         self.train_paths, self.val_paths = self.split_sets(split_ratio, self.classes, self.data_dirs, seed)
 
     def filter_name(self, name):
-        """../../shapenet/armchair_213/20_99_rgb.png"""
         ang1, ang2, _ = name.decode().split('/')[-1].split('_')
         ang1, ang2 = int(ang1), int(ang2)
-        if (ang1 == 10 or ang1 == 20) and ang2 % 6 == 0:
+        if (ang1 == 10 or ang1 == 20 or ang1 == 30) and ang2 % 12 == 0:
             return True
         else:
             return False
